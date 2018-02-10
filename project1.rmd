@@ -1,0 +1,153 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading and preprocessing the data
+```{r}
+setwd("/home/stefan/datasciencecoursera/Course5_ReproducibleResearch/RepData_PeerAssessment1/") #set your own working directory
+df_ori <- read.csv("activity.csv") #read csv, and store it in dataframe called df
+df <- subset(df_ori, is.na(steps) == FALSE) # Remove any NA values
+```
+
+
+## What is mean total number of steps taken per day?
+First, we want to form vector of sum of steps per day. We can do this by applying `tapply` function, and removing NA values. We store this vector in a variable called `sum_per_day`.
+```{r}
+sum_per_day <- as.vector(with(df, tapply(steps, date, sum)))
+sum_per_day <- sum_per_day[!is.na(sum_per_day)]
+```
+Let's take a look at summary of `sum_per_day`.
+```{r}
+summary(sum_per_day)
+```
+From this summary table, we know that median and mean of the total steps per day are very close, i.e. 10765 and 10766. The histogram below shows the distribution of total steps per day.
+```{r}
+hist(sum_per_day, breaks = 5, main = "Distribution of total steps per day", xlab = "Steps per day")
+rug(sum_per_day)
+abline(v = mean(sum_per_day), col = "red", lty = 2, lwd = 2)
+abline(v = median(sum_per_day), col = "blue")
+legend("topright", col = c("red", "blue"), legend = c("Mean", "Median"), lty= c(2,1))
+```
+
+
+## What is the average daily activity pattern?  
+We create data frame with 2 variables: average steps in 5 minute interval, and interval.
+```{r}
+avg_min <- as.data.frame(with(df, tapply(steps, interval, mean)))
+avg_min <- cbind(avg_min, unique(df$interval))
+names(avg_min) <- c("steps", "interval")
+head(avg_min)
+```
+Then we make time series plot, with vertical line indicating its maximum value.
+```{r}
+plot(x = avg_min$interval, y = avg_min$steps, type = "l", main = "Average number of steps vs 5-min interval", xlab = "Time (Minutes)", ylab = "Average steps")
+abline(v = avg_min$interval[which.max(avg_min$steps)], col = "red")
+legend("topright", col = "red", legend = "Max", lty = 1)
+```
+
+```{r}
+avg_min$interval[which.max(avg_min$steps)]
+```
+
+The maximum average steps happens in min 835.
+
+
+## Imputing missing values  
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs). In this dataset, NA is only in `steps` column.
+```{r}
+sum(is.na(df_ori$steps))
+```
+There are 2304 rows with NA in the dataset. 
+
+Interestingly, NAs occur in all of intervals for specific dates , if exist. This can be concluded by comparing output of these code chunks:
+```{r}
+sum_per_day <- with(df, tapply(steps, date, sum)) #NA removed beforehand
+sum_per_day1 <- with(df_ori, tapply(steps, date, sum)) #NA not removed
+
+sum_per_day
+
+sum_per_day1
+```
+
+We see that both of them have the same exact values. Comparing the 2 matrices, we know that in the following dates, all `steps` are NA:
+```{r}
+NA_date <- sum_per_day[is.na(sum_per_day)]
+NA_date <- names(NA_date)
+NA_date
+```
+We will impute NAs in those dates with mean in 5 min interval (similar to what we got from previous question).
+
+```{r}
+avg <- as.vector(with(df, tapply(steps, interval, mean)))
+ 
+for (date in NA_date){
+        index_NA <- which(df_ori$date == date)
+        df_ori$steps[index_NA] <- avg
+}
+```
+
+Let's evaluate the mean, median, and its distribution with histogram.
+
+```{r}
+sum_per_day2 <- as.vector(with(df_ori, tapply(steps, date, sum)))
+summary(sum_per_day2)
+```
+```{r}
+hist(sum_per_day2, breaks = 5, main = "Distribution of total steps per day", xlab = "Steps per day")
+rug(sum_per_day2)
+abline(v = mean(sum_per_day2), col = "red", lty = 2, lwd = 2)
+abline(v = median(sum_per_day2), col = "blue")
+legend("topright", col = c("red", "blue"), legend = c("Mean", "Median"), lty= c(2,1))
+```
+
+From the summary and histogram, we conclude that the distribution, mean, median are almost the same as the first part of this assignment.
+
+## Are there differences in activity patterns between weekdays and weekends?
+### Loading and preprocessing the data
+We add new variable `category`. If it is Saturday or Sunday, we categorize it as "Weekend", else as "Weekday".
+```{r}
+df_ori$category <- ifelse((weekdays(as.Date(df_ori$date)) == "Saturday" | weekdays(as.Date(df_ori$date)) == "Sunday"), "Weekend", "Weekday")
+```
+
+We create data frame showing average steps per day, grouped by category weekend/weekday, stored in `combined_df`.
+
+```{r}
+df_weekday <- subset(df_ori, category == "Weekday")
+df_weekend <- subset(df_ori, category == "Weekend")
+
+avg_min_weekday <- as.data.frame(with(df_weekday, tapply(steps, interval, mean)))
+avg_min_weekday <- cbind(avg_min_weekday, unique(df_weekday$interval), "Weekday")
+names(avg_min_weekday) <- c("steps", "interval", "category")
+
+avg_min_weekend <- as.data.frame(with(df_weekend, tapply(steps, interval, mean)))
+avg_min_weekend <- cbind(avg_min_weekend, unique(df_weekend$interval), "Weekend")
+names(avg_min_weekend) <- c("steps","interval", "category")
+
+combined_df <- rbind(avg_min_weekday, avg_min_weekend)
+```
+
+Plot the time series.
+```{r}
+library(ggplot2)
+
+ggplot(combined_df, aes(interval, steps)) + geom_line() + facet_grid(category~.) + ggtitle ("Average number of steps vs 5-min interval")
+```
+
+### What is mean total number of steps taken per day?
+Let's see summary of average steps on weekdays
+```{r}
+summary(avg_min_weekday$steps)
+```
+And compare with summary of average steps on weekends
+```{r}
+summary(avg_min_weekend$steps)
+```
+
+We see that on weekends, mean is greater than on weekdays.
