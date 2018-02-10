@@ -212,7 +212,6 @@ legend("topright", col = c("red", "blue"), legend = c("Mean", "Median"), lty= c(
 From the summary and histogram, we conclude that the distribution, mean, median are almost the same as the first part of this assignment.
 
 ## Are there differences in activity patterns between weekdays and weekends?
-### Loading and preprocessing the data
 We add new variable `category`. If it is Saturday or Sunday, we categorize it as "Weekend", else as "Weekday".
 
 ```r
@@ -247,7 +246,6 @@ ggplot(combined_df, aes(interval, steps)) + geom_line() + facet_grid(category~.)
 
 ![](project1_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
-### What is mean total number of steps taken per day?
 Let's see summary of average steps on weekdays
 
 ```r

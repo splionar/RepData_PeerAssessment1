@@ -110,7 +110,6 @@ legend("topright", col = c("red", "blue"), legend = c("Mean", "Median"), lty= c(
 From the summary and histogram, we conclude that the distribution, mean, median are almost the same as the first part of this assignment.
 
 ## Are there differences in activity patterns between weekdays and weekends?
-### Loading and preprocessing the data
 We add new variable `category`. If it is Saturday or Sunday, we categorize it as "Weekend", else as "Weekday".
 ```{r}
 df_ori$category <- ifelse((weekdays(as.Date(df_ori$date)) == "Saturday" | weekdays(as.Date(df_ori$date)) == "Sunday"), "Weekend", "Weekday")
@@ -140,7 +139,6 @@ library(ggplot2)
 ggplot(combined_df, aes(interval, steps)) + geom_line() + facet_grid(category~.) + ggtitle ("Average number of steps vs 5-min interval")
 ```
 
-### What is mean total number of steps taken per day?
 Let's see summary of average steps on weekdays
 ```{r}
 summary(avg_min_weekday$steps)
